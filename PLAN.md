@@ -87,16 +87,52 @@ hearth_grocery  --> hearth
 ## Implementation Steps
 
 ### Step 0: Project Scaffolding [DONE]
-### Step 1: Dev Tooling (CLAUDE.md + claude hex)
-### Step 2: Core Auth - Users, Households, Scope
-### Step 3: Admin User Management
-### Step 4: Navigation Shell + Dashboard
-### Step 5: Calendar Feature
-### Step 6: Budget Feature
-### Step 7: Grocery Feature
-### Step 8: Cross-Feature Linking
-### Step 9: Dashboard Wiring
-### Step 10: Polish + Deployment Prep
+### Step 1: Dev Tooling (CLAUDE.md) [DONE]
+### Step 2: Core Auth - Users, Households, Scope [DONE]
+### Step 3: Admin User Management [DONE]
+### Step 4: Navigation Shell + Dashboard [DONE]
+### Step 5: Calendar Feature [TODO - NEXT]
+### Step 6: Budget Feature [TODO]
+### Step 7: Grocery Feature [TODO]
+### Step 8: Cross-Feature Linking [TODO]
+### Step 9: Dashboard Wiring [TODO]
+### Step 10: Polish + Deployment Prep [TODO]
+
+## What's Built So Far
+
+### Core Auth (Step 2)
+- `phx.gen.auth` base with password login (magic link UI removed for self-hosted simplicity)
+- `Hearth.Accounts.User` extended with `username`, `role` (admin|adult|child), `household_id`
+- `Hearth.Households.Household` schema + context
+- `Hearth.Accounts.Scope` carries both `user` and `household`
+- Session token query preloads household via left_join in select (not preload — Ecto doesn't allow preload with custom select)
+- First-run setup flow: `/setup` creates household + admin user in one transaction
+- Auto-login on registration (no email confirmation for self-hosted)
+- Migrations: `20260305040358_create_users_auth_tables`, `20260305040500_create_households_and_extend_users`
+
+### Admin (Step 3)
+- `Accounts.list_household_users/1`, `update_user_role/2`, `delete_user/2`
+- `Admin.UsersLive` — user table with role dropdown, delete button
+- `Admin.HouseholdLive` — edit household name
+- `ensure_admin` on_mount hook in `UserAuth`
+- Routes: `/admin/users`, `/admin/household`
+
+### Navigation Shell (Step 4)
+- daisyUI drawer sidebar (CSS-only, no JS hooks)
+- Mobile: hamburger menu opens overlay drawer
+- Desktop: sidebar always visible (md:drawer-open)
+- Nav: Dashboard, Calendar, Budget, Grocery, divider, Users (admin), Settings (admin)
+- User avatar + info + logout at sidebar bottom
+- HomeLive dashboard with placeholder widget cards
+- Placeholder LiveViews at `/calendar`, `/budget`, `/grocery`
+- Root layout: clean `<body>` with `data-theme="hearth"`, no theme toggle (light only)
+
+### Important Implementation Notes
+- **No `simple_form` component** — Phoenix 1.8 with daisyUI doesn't generate one. Use `<.form>` directly.
+- **Minimal JS preference** — user explicitly requested avoiding unnecessary JS. Sidebar uses daisyUI CSS drawer, not JS hooks.
+- **All migrations go in** `apps/hearth/priv/repo/migrations/` regardless of which feature app owns the schema.
+- **84 tests passing**, 0 failures as of Step 4 completion.
+- **Phoenix 1.8.4** was resolved (not 1.8.3 as originally planned — minor patch).
 
 ## Key Patterns
 
