@@ -167,8 +167,24 @@ defmodule HearthWeb.UserAuth do
   end
 
   @doc """
-  LiveView on_mount hook to ensure the user is authenticated.
+  LiveView on_mount hooks for authentication and authorization.
   """
+  def on_mount(:ensure_admin, _params, session, socket) do
+    socket = mount_current_scope(session, socket)
+
+    if socket.assigns.current_scope && socket.assigns.current_scope.user &&
+         socket.assigns.current_scope.user.role == "admin" do
+      {:cont, socket}
+    else
+      socket =
+        socket
+        |> Phoenix.LiveView.put_flash(:error, "You don't have permission to access this page.")
+        |> Phoenix.LiveView.redirect(to: ~p"/dashboard")
+
+      {:halt, socket}
+    end
+  end
+
   def on_mount(:ensure_authenticated, _params, session, socket) do
     socket = mount_current_scope(session, socket)
 

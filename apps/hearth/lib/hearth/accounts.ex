@@ -112,6 +112,38 @@ defmodule Hearth.Accounts do
     User.registration_changeset(user, attrs, [hash_password: false, validate_unique: false] ++ opts)
   end
 
+  ## Admin functions
+
+  @doc """
+  Lists all users in the given household.
+  """
+  def list_household_users(%Hearth.Accounts.Scope{} = scope) do
+    User
+    |> where([u], u.household_id == ^scope.household.id)
+    |> order_by([u], u.username)
+    |> Repo.all()
+  end
+
+  @doc """
+  Updates a user's role. Only admins should call this.
+  """
+  def update_user_role(%User{} = user, role) when role in ~w(admin adult child) do
+    user
+    |> Ecto.Changeset.change(role: role)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a user. Cannot delete yourself.
+  """
+  def delete_user(%Hearth.Accounts.Scope{} = scope, %User{} = user) do
+    if scope.user.id == user.id do
+      {:error, :cannot_delete_self}
+    else
+      Repo.delete(user)
+    end
+  end
+
   ## Settings
 
   @doc """

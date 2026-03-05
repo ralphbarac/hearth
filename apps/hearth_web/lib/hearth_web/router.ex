@@ -64,6 +64,12 @@ defmodule HearthWeb.Router do
       live "/dashboard", HomeLive
     end
 
+    live_session :admin,
+      on_mount: [{HearthWeb.UserAuth, :ensure_admin}] do
+      live "/admin/users", Admin.UsersLive
+      live "/admin/household", Admin.HouseholdLive
+    end
+
     get "/users/settings", UserSettingsController, :edit
     put "/users/settings", UserSettingsController, :update
     get "/users/settings/confirm-email/:token", UserSettingsController, :confirm_email
