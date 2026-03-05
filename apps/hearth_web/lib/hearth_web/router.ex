@@ -62,6 +62,9 @@ defmodule HearthWeb.Router do
     live_session :authenticated,
       on_mount: [{HearthWeb.UserAuth, :ensure_authenticated}] do
       live "/dashboard", HomeLive
+      live "/calendar", CalendarLive.Index
+      live "/budget", BudgetLive.Index
+      live "/grocery", GroceryLive.Index
     end
 
     live_session :admin,
