@@ -9,6 +9,19 @@
 # move said applications out of the umbrella.
 import Config
 
+config :hearth, :scopes,
+  user: [
+    default: true,
+    module: Hearth.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :binary_id,
+    schema_table: :users,
+    test_data_fixture: Hearth.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
 # Configure Mix tasks and generators
 config :hearth,
   ecto_repos: [Hearth.Repo]
