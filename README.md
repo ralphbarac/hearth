@@ -87,6 +87,32 @@ Configuration is read from environment variables at runtime (see `config/runtime
 | `POOL_SIZE` | No | DB connection pool size (default `10`) |
 | `ECTO_IPV6` | No | Set to `true` to enable IPv6 DB connections |
 
+## Installing as an App (PWA)
+
+Hearth works as a home screen app on both iOS and Android — no app store required.
+
+### iPhone / iPad (Safari)
+
+1. Open Hearth in **Safari** and log in
+2. Tap the **Share** button (box with arrow, bottom of screen)
+3. Scroll down and tap **Add to Home Screen**
+4. Name it "Hearth" and tap **Add**
+
+The app will open full-screen without Safari's browser chrome, just like a native app.
+
+> Safari is required on iOS — "Add to Home Screen" does not work from Chrome or Firefox on iPhone.
+
+### Android (Chrome)
+
+1. Open Hearth in **Chrome** and log in
+2. Tap the **three-dot menu** (top right)
+3. Tap **Add to Home screen** or **Install app**
+4. Confirm — the app will appear on your home screen
+
+Chrome may also show an automatic install banner at the bottom of the screen.
+
+---
+
 ## Self-Hosted Deployment
 
 Hearth is designed to run as a single server for one family. The recommended deployment path is Elixir releases:
