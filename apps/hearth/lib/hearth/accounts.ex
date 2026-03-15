@@ -87,20 +87,24 @@ defmodule Hearth.Accounts do
   """
   def setup_first_household(household_attrs, user_attrs) do
     Repo.transact(fn ->
-      with {:ok, household} <- Households.create_household(household_attrs),
-           {:ok, user} <-
-             %User{}
-             |> User.registration_changeset(
-               user_attrs
-               |> Map.put("role", "admin")
-               |> Map.put("household_id", household.id)
-             )
-             |> Repo.insert(),
-           {:ok, household} <-
-             household
-             |> Ecto.Changeset.change(created_by_id: user.id)
-             |> Repo.update() do
-        {:ok, %{household: household, user: %{user | household: household}}}
+      if not Households.first_run?() do
+        {:error, :already_setup}
+      else
+        with {:ok, household} <- Households.create_household(household_attrs),
+             {:ok, user} <-
+               %User{}
+               |> User.registration_changeset(
+                 user_attrs
+                 |> Map.put("role", "admin")
+                 |> Map.put("household_id", household.id)
+               )
+               |> Repo.insert(),
+             {:ok, household} <-
+               household
+               |> Ecto.Changeset.change(created_by_id: user.id)
+               |> Repo.update() do
+          {:ok, %{household: household, user: %{user | household: household}}}
+        end
       end
     end)
   end
@@ -109,7 +113,51 @@ defmodule Hearth.Accounts do
   Returns a changeset for user registration.
   """
   def change_user_registration(%User{} = user, attrs \\ %{}, opts \\ []) do
-    User.registration_changeset(user, attrs, [hash_password: false, validate_unique: false] ++ opts)
+    User.registration_changeset(
+      user,
+      attrs,
+      [hash_password: false, validate_unique: false] ++ opts
+    )
+  end
+
+  ## Feature access
+
+  @doc """
+  Returns true if the given feature is accessible for this scope.
+  Household master switch AND user-level access (default true = inherits household).
+  """
+  def feature_enabled?(%Hearth.Accounts.Scope{} = scope, feature) do
+    household_on = Households.feature_enabled?(scope.household, feature)
+    user_on = Map.get(scope.user.features || %{}, feature, true)
+    household_on and user_on
+  end
+
+  @doc """
+  Updates a household member's per-feature access flags.
+  Only admins within the same household may call this.
+  """
+  def update_user_features(%Hearth.Accounts.Scope{} = scope, %User{} = user, features)
+      when scope.user.role == "admin" and user.household_id == scope.household.id do
+    user
+    |> User.features_changeset(features)
+    |> Repo.update()
+  end
+
+  @doc """
+  Creates a new household member. Only admins may call this.
+  Sets household_id and confirmed_at automatically.
+  """
+  def admin_create_user(%Hearth.Accounts.Scope{} = scope, attrs)
+      when scope.user.role == "admin" do
+    attrs_with_meta =
+      Map.merge(attrs, %{
+        "household_id" => scope.household.id,
+        "confirmed_at" => NaiveDateTime.utc_now(:second)
+      })
+
+    %User{}
+    |> User.admin_create_changeset(attrs_with_meta)
+    |> Repo.insert()
   end
 
   ## Admin functions
@@ -126,21 +174,28 @@ defmodule Hearth.Accounts do
 
   @doc """
   Updates a user's role. Only admins should call this.
+  Requires scope to verify the target user belongs to the same household.
   """
-  def update_user_role(%User{} = user, role) when role in ~w(admin adult child) do
+  def update_user_role(%Hearth.Accounts.Scope{} = scope, %User{} = user, role)
+      when role in ~w(admin adult child) and user.household_id == scope.household.id do
     user
     |> Ecto.Changeset.change(role: role)
     |> Repo.update()
   end
 
   @doc """
-  Deletes a user. Cannot delete yourself.
+  Deletes a user. Cannot delete yourself. Target must belong to the same household.
   """
   def delete_user(%Hearth.Accounts.Scope{} = scope, %User{} = user) do
-    if scope.user.id == user.id do
-      {:error, :cannot_delete_self}
-    else
-      Repo.delete(user)
+    cond do
+      scope.user.id == user.id ->
+        {:error, :cannot_delete_self}
+
+      user.household_id != scope.household.id ->
+        {:error, :not_found}
+
+      true ->
+        Repo.delete(user)
     end
   end
 

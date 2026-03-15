@@ -61,6 +61,12 @@ defmodule HearthWeb.MixProject do
       {:hearth_calendar, in_umbrella: true},
       {:hearth_budget, in_umbrella: true},
       {:hearth_grocery, in_umbrella: true},
+      {:hearth_inventory, in_umbrella: true},
+      {:hearth_recipes, in_umbrella: true},
+      {:hearth_contacts, in_umbrella: true},
+      {:hearth_documents, in_umbrella: true},
+      {:hearth_chores, in_umbrella: true},
+      {:hearth_maintenance, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"}
     ]

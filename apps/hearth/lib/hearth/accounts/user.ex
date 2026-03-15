@@ -10,6 +10,7 @@ defmodule Hearth.Accounts.User do
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :role, :string, default: "adult"
+    field :features, :map, default: %{}
     field :confirmed_at, :naive_datetime
     field :authenticated_at, :naive_datetime, virtual: true
     belongs_to :household, Hearth.Households.Household
@@ -36,7 +37,9 @@ defmodule Hearth.Accounts.User do
     changeset
     |> validate_required([:username])
     |> validate_length(:username, min: 2, max: 30)
-    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "only letters, numbers, and underscores")
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "only letters, numbers, and underscores"
+    )
     |> unsafe_validate_unique(:username, Hearth.Repo)
     |> unique_constraint(:username)
   end
@@ -137,6 +140,30 @@ defmodule Hearth.Accounts.User do
     else
       changeset
     end
+  end
+
+  @doc """
+  A changeset for admin-created accounts. Sets household, role, features, and
+  auto-confirms the account. Validates password confirmation.
+  """
+  def admin_create_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:email, :username, :password, :role, :household_id, :features, :confirmed_at])
+    |> validate_required([:username])
+    |> validate_username()
+    |> validate_email([])
+    |> validate_confirmation(:password, message: "does not match password")
+    |> validate_password([])
+    |> validate_role()
+  end
+
+  @doc """
+  A changeset for updating per-user feature access flags.
+  """
+  def features_changeset(user, features) do
+    user
+    |> cast(%{features: features}, [:features])
+    |> validate_required([:features])
   end
 
   @doc """

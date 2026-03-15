@@ -28,6 +28,11 @@ defmodule HearthWeb.SetupController do
           |> put_flash(:info, "Welcome to Hearth! Your household has been created.")
           |> HearthWeb.UserAuth.log_in_user(user)
 
+        {:error, :already_setup} ->
+          conn
+          |> put_flash(:error, "Setup has already been completed.")
+          |> redirect(to: ~p"/users/log-in")
+
         {:error, %Ecto.Changeset{} = changeset} ->
           render(conn, :new, changeset: changeset)
 

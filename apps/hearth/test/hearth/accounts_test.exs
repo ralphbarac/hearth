@@ -61,7 +61,11 @@ defmodule Hearth.AccountsTest do
 
     test "validates email when given" do
       {:error, changeset} =
-        Accounts.register_user(%{email: "not valid", username: "test", password: valid_user_password()})
+        Accounts.register_user(%{
+          email: "not valid",
+          username: "test",
+          password: valid_user_password()
+        })
 
       assert %{email: ["must have the @ sign and no spaces"]} = errors_on(changeset)
     end
@@ -70,7 +74,11 @@ defmodule Hearth.AccountsTest do
       too_long = String.duplicate("db", 100)
 
       {:error, changeset} =
-        Accounts.register_user(%{email: too_long, username: "test", password: valid_user_password()})
+        Accounts.register_user(%{
+          email: too_long,
+          username: "test",
+          password: valid_user_password()
+        })
 
       assert "should be at most 160 character(s)" in errors_on(changeset).email
     end
@@ -79,7 +87,11 @@ defmodule Hearth.AccountsTest do
       %{email: email} = user_fixture()
 
       {:error, changeset} =
-        Accounts.register_user(%{email: email, username: "other", password: valid_user_password()})
+        Accounts.register_user(%{
+          email: email,
+          username: "other",
+          password: valid_user_password()
+        })
 
       assert "has already been taken" in errors_on(changeset).email
 
@@ -128,6 +140,97 @@ defmodule Hearth.AccountsTest do
       assert household.created_by_id == user.id
       assert user.role == "admin"
       assert user.household_id == household.id
+    end
+  end
+
+  describe "admin_create_user/2" do
+    test "creates a confirmed user in the admin's household" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+
+      attrs = %{
+        "email" => unique_user_email(),
+        "username" => unique_username(),
+        "password" => valid_user_password(),
+        "password_confirmation" => valid_user_password(),
+        "role" => "adult"
+      }
+
+      assert {:ok, user} = Accounts.admin_create_user(scope, attrs)
+      assert user.household_id == scope.household.id
+      assert user.confirmed_at != nil
+    end
+
+    test "returns error with invalid attrs" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+
+      assert {:error, changeset} = Accounts.admin_create_user(scope, %{})
+      assert errors_on(changeset)[:email]
+      assert errors_on(changeset)[:password]
+    end
+
+    test "returns error when password confirmation does not match" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+
+      attrs = %{
+        "email" => unique_user_email(),
+        "username" => unique_username(),
+        "password" => valid_user_password(),
+        "password_confirmation" => "wrong password"
+      }
+
+      assert {:error, changeset} = Accounts.admin_create_user(scope, attrs)
+      assert errors_on(changeset)[:password_confirmation]
+    end
+
+    test "raises FunctionClauseError when caller is not admin" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+
+      assert_raise FunctionClauseError, fn ->
+        Accounts.admin_create_user(scope, %{})
+      end
+    end
+  end
+
+  describe "feature_enabled?/2" do
+    test "returns false when household feature is off regardless of user" do
+      household =
+        household_fixture(%{
+          features: %{"calendar" => false, "budget" => true, "grocery" => true}
+        })
+
+      user = user_fixture(%{household: household})
+      scope = user_scope_fixture(user)
+
+      refute Accounts.feature_enabled?(scope, "calendar")
+      assert Accounts.feature_enabled?(scope, "budget")
+    end
+
+    test "returns true when household feature is on and user has no override" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+
+      assert Accounts.feature_enabled?(scope, "calendar")
+      assert Accounts.feature_enabled?(scope, "budget")
+      assert Accounts.feature_enabled?(scope, "grocery")
+    end
+
+    test "returns false when household feature is on but user override is false" do
+      user = user_fixture()
+      household = user.household
+
+      {:ok, restricted_user} =
+        user
+        |> User.features_changeset(%{"calendar" => false, "budget" => true, "grocery" => true})
+        |> Hearth.Repo.update()
+
+      scope = %Hearth.Accounts.Scope{user: restricted_user, household: household}
+
+      refute Accounts.feature_enabled?(scope, "calendar")
+      assert Accounts.feature_enabled?(scope, "budget")
     end
   end
 
@@ -354,6 +457,63 @@ defmodule Hearth.AccountsTest do
       token = Accounts.generate_user_session_token(user)
       assert Accounts.delete_user_session_token(token) == :ok
       refute Accounts.get_user_by_session_token(token)
+    end
+  end
+
+  describe "update_user_role/3" do
+    test "updates the role of a household member" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+      member = user_fixture(%{household: admin.household, role: "adult"})
+
+      assert {:ok, updated} = Accounts.update_user_role(scope, member, "child")
+      assert updated.role == "child"
+    end
+
+    test "raises FunctionClauseError when user is from a different household" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+      other_user = user_fixture()
+
+      assert_raise FunctionClauseError, fn ->
+        Accounts.update_user_role(scope, other_user, "adult")
+      end
+    end
+
+    test "raises FunctionClauseError for invalid role" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+      member = user_fixture(%{household: admin.household})
+
+      assert_raise FunctionClauseError, fn ->
+        Accounts.update_user_role(scope, member, "superuser")
+      end
+    end
+  end
+
+  describe "delete_user/2" do
+    test "deletes a household member" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+      member = user_fixture(%{household: admin.household})
+
+      assert {:ok, _} = Accounts.delete_user(scope, member)
+      assert_raise Ecto.NoResultsError, fn -> Accounts.get_user!(member.id) end
+    end
+
+    test "returns error when attempting to delete yourself" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+
+      assert {:error, :cannot_delete_self} = Accounts.delete_user(scope, admin)
+    end
+
+    test "returns error when target user is from a different household" do
+      admin = user_fixture(%{role: "admin"})
+      scope = user_scope_fixture(admin)
+      other_user = user_fixture()
+
+      assert {:error, :not_found} = Accounts.delete_user(scope, other_user)
     end
   end
 

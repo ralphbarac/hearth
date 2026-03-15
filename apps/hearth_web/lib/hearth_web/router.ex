@@ -60,17 +60,31 @@ defmodule HearthWeb.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :authenticated,
+      layout: {HearthWeb.Layouts, :app},
       on_mount: [{HearthWeb.UserAuth, :ensure_authenticated}] do
       live "/dashboard", HomeLive
       live "/calendar", CalendarLive.Index
       live "/budget", BudgetLive.Index
+      live "/budget/goals", GoalsLive.Index
       live "/grocery", GroceryLive.Index
+      live "/bills", BillsLive.Index
+      live "/inventory", InventoryLive.Index
+      live "/recipes", RecipesLive.Index, :index
+      live "/recipes/:id", RecipesLive.Show, :show
+      live "/meal-plan", MealPlanLive
+      live "/contacts", ContactsLive.Index
+      live "/documents", DocumentsLive.Index
+      live "/chores", ChoresLive.Index
+      live "/maintenance", MaintenanceLive.Index
     end
 
     live_session :admin,
+      layout: {HearthWeb.Layouts, :app},
       on_mount: [{HearthWeb.UserAuth, :ensure_admin}] do
       live "/admin/users", Admin.UsersLive
       live "/admin/household", Admin.HouseholdLive
+      live "/admin/features", Admin.FeaturesLive
+      live "/admin/categories", Admin.CategoriesLive
     end
 
     get "/users/settings", UserSettingsController, :edit

@@ -205,7 +205,7 @@ defmodule HearthWeb.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-3">
       <label>
         <input
           type="hidden"
@@ -233,7 +233,7 @@ defmodule HearthWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-3">
       <label>
         <span :if={@label} class="label mb-1">{@label}</span>
         <select
@@ -254,7 +254,7 @@ defmodule HearthWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-3">
       <label>
         <span :if={@label} class="label mb-1">{@label}</span>
         <textarea
@@ -275,7 +275,7 @@ defmodule HearthWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-3">
       <label>
         <span :if={@label} class="label mb-1">{@label}</span>
         <input
@@ -442,6 +442,51 @@ defmodule HearthWeb.CoreComponents do
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
     <span class={[@name, @class]} />
+    """
+  end
+
+  @doc """
+  Formats an integer amount in cents as a dollar string.
+
+  ## Examples
+
+      iex> format_amount(1234)
+      "$12.34"
+      iex> format_amount(-500)
+      "-$5.00"
+  """
+  def format_amount(cents) when is_integer(cents) do
+    abs_cents = abs(cents)
+    dollars = div(abs_cents, 100)
+    cents_part = rem(abs_cents, 100)
+    sign = if cents < 0, do: "-", else: ""
+    "#{sign}$#{dollars}.#{String.pad_leading(Integer.to_string(cents_part), 2, "0")}"
+  end
+
+  def format_amount(_), do: "$0.00"
+
+  @doc """
+  Renders a consistent empty state with an icon and message.
+
+  ## Examples
+
+      <.empty_state icon="hero-calendar-days" message="No events yet." />
+      <.empty_state icon="hero-banknotes" message="No transactions.">
+        <.button>Add one</.button>
+      </.empty_state>
+  """
+  attr :icon, :string, required: true
+  attr :message, :string, required: true
+
+  slot :inner_block
+
+  def empty_state(assigns) do
+    ~H"""
+    <div class="text-center py-10 text-base-content/50">
+      <.icon name={@icon} class="size-10 mx-auto mb-3 opacity-40" />
+      <p class="text-sm">{@message}</p>
+      {render_slot(@inner_block)}
+    </div>
     """
   end
 

@@ -6,6 +6,7 @@ defmodule Hearth.Households.Household do
   @foreign_key_type :binary_id
   schema "households" do
     field :name, :string
+    field :features, :map, default: %{}
     belongs_to :created_by, Hearth.Accounts.User
     has_many :users, Hearth.Accounts.User
 
@@ -14,7 +15,7 @@ defmodule Hearth.Households.Household do
 
   def changeset(household, attrs) do
     household
-    |> cast(attrs, [:name, :created_by_id])
+    |> cast(attrs, [:name, :features, :created_by_id])
     |> validate_required([:name])
     |> validate_length(:name, min: 1, max: 100)
   end

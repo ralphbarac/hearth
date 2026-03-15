@@ -1,17 +1,26 @@
-<Layouts.app flash={@flash} current_scope={@current_scope}>
-  <div class="mx-auto max-w-sm space-y-4">
-    <div class="text-center">
-      <.header>
-        <p>Log in</p>
-        <:subtitle>
-          <%= if @current_scope do %>
-            You need to reauthenticate to perform sensitive actions on your account.
-          <% end %>
-        </:subtitle>
-      </.header>
+<Layouts.sidebar_layout flash={@flash} current_scope={@current_scope}>
+  <div class="card bg-base-100 shadow-lg rounded-2xl p-8 w-full max-w-sm">
+    <div class="text-center mb-6">
+      <.icon name="hero-fire" class="size-10 text-primary mx-auto" />
+      <h1 class="text-2xl font-bold text-primary mt-2">Hearth</h1>
     </div>
 
-    <.form :let={f} for={@form} as={:user} id="login_form" action={~p"/users/log-in"}>
+    <h2 class="text-lg font-semibold text-center mb-4">
+      <%= if @current_scope do %>
+        Confirm your password
+      <% else %>
+        Welcome back
+      <% end %>
+    </h2>
+
+    <.form
+      :let={f}
+      for={@form}
+      as={:user}
+      id="login_form"
+      action={~p"/users/log-in"}
+      class="space-y-4"
+    >
       <.input
         readonly={!!@current_scope}
         field={f[:email]}
@@ -35,4 +44,4 @@
       </.button>
     </.form>
   </div>
-</Layouts.app>
+</Layouts.sidebar_layout>

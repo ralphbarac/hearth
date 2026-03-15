@@ -1,0 +1,3 @@
+<.sidebar_layout flash={@flash} current_scope={@current_scope} active_nav={assigns[:active_nav]}>
+  {if Map.has_key?(assigns, :inner_content), do: @inner_content, else: render_slot(@inner_block)}
+</.sidebar_layout>

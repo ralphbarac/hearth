@@ -42,4 +42,20 @@ defmodule Hearth.Households do
   def change_household(%Household{} = household, attrs \\ %{}) do
     Household.changeset(household, attrs)
   end
+
+  @doc """
+  Updates the feature flags for a household.
+  """
+  def update_features(%Household{} = household, features) when is_map(features) do
+    household
+    |> Ecto.Changeset.change(features: features)
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns true if the given feature is enabled for the household.
+  """
+  def feature_enabled?(%Household{} = household, feature) do
+    Map.get(household.features || %{}, feature, false)
+  end
 end

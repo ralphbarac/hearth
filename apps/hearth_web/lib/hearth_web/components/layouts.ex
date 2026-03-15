@@ -16,9 +16,11 @@ defmodule HearthWeb.Layouts do
     default: nil,
     doc: "the current scope"
 
+  attr :active_nav, :atom, default: nil, doc: "the active nav section atom"
+
   slot :inner_block, required: true
 
-  def app(assigns) do
+  def sidebar_layout(assigns) do
     ~H"""
     <%= if @current_scope do %>
       <div class="drawer md:drawer-open">
@@ -32,14 +34,16 @@ defmodule HearthWeb.Layouts do
                 <.icon name="hero-bars-3" class="size-5" />
               </label>
             </div>
-            <div class="flex-1">
+            <div class="flex-1 flex items-center gap-2 ml-1">
+              <.icon name="hero-fire" class="size-5 text-primary" />
               <span class="text-lg font-semibold text-primary">Hearth</span>
             </div>
             <div class="flex-none">
               <div class="avatar placeholder">
                 <div class="bg-primary text-primary-content w-8 rounded-full">
                   <span class="text-xs">
-                    {String.first(@current_scope.user.username || @current_scope.user.email) |> String.upcase()}
+                    {String.first(@current_scope.user.username || @current_scope.user.email)
+                    |> String.upcase()}
                   </span>
                 </div>
               </div>
@@ -58,62 +62,205 @@ defmodule HearthWeb.Layouts do
             <%!-- Logo --%>
             <div class="p-4 border-b border-base-300">
               <a href={~p"/dashboard"} class="flex items-center gap-2">
-                <.icon name="hero-home-solid" class="size-6 text-primary" />
+                <.icon name="hero-fire" class="size-6 text-primary" />
                 <span class="text-xl font-semibold text-primary">Hearth</span>
               </a>
             </div>
 
             <%!-- Nav items --%>
-            <nav class="flex-1 p-2">
-              <ul class="menu gap-1">
-                <li>
-                  <.nav_link href={~p"/dashboard"} icon="hero-squares-2x2" label="Dashboard" />
-                </li>
-                <li>
-                  <.nav_link href={~p"/calendar"} icon="hero-calendar-days" label="Calendar" />
-                </li>
-                <li>
-                  <.nav_link href={~p"/budget"} icon="hero-banknotes" label="Budget" />
-                </li>
-                <li>
-                  <.nav_link href={~p"/grocery"} icon="hero-shopping-cart" label="Grocery Lists" />
-                </li>
-              </ul>
+            <nav class="flex-1 p-2 space-y-0.5 sidebar-scroll overflow-y-auto">
+              <.nav_link
+                href={~p"/dashboard"}
+                icon="hero-squares-2x2"
+                label="Dashboard"
+                active={@active_nav == :dashboard}
+              />
+
+              <%!-- PLANNING section --%>
+              <p
+                :if={
+                  feature_enabled?(@current_scope, "calendar") or
+                    (feature_enabled?(@current_scope, "calendar") and
+                       feature_enabled?(@current_scope, "recipes"))
+                }
+                class="text-[10px] font-semibold tracking-widest text-base-content/40 uppercase px-3 pt-4 pb-1 mt-1"
+              >
+                Planning
+              </p>
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "calendar")}
+                href={~p"/calendar"}
+                icon="hero-calendar-days"
+                label="Calendar"
+                active={@active_nav == :calendar}
+              />
+              <.nav_link
+                :if={
+                  feature_enabled?(@current_scope, "calendar") and
+                    feature_enabled?(@current_scope, "recipes")
+                }
+                href={~p"/meal-plan"}
+                icon="hero-clipboard-document-list"
+                label="Meal Planner"
+                active={@active_nav == :meal_plan}
+              />
+
+              <%!-- FINANCE section --%>
+              <p
+                :if={feature_enabled?(@current_scope, "budget")}
+                class="text-[10px] font-semibold tracking-widest text-base-content/40 uppercase px-3 pt-4 pb-1 mt-1"
+              >
+                Finance
+              </p>
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "budget")}
+                href={~p"/budget"}
+                icon="hero-banknotes"
+                label="Budget"
+                active={@active_nav == :budget}
+              />
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "budget")}
+                href={~p"/bills"}
+                icon="hero-document-text"
+                label="Recurring Bills"
+                active={@active_nav == :bills}
+              />
+
+              <%!-- HOME LIFE section --%>
+              <p
+                :if={
+                  feature_enabled?(@current_scope, "grocery") or
+                    feature_enabled?(@current_scope, "inventory") or
+                    feature_enabled?(@current_scope, "recipes") or
+                    feature_enabled?(@current_scope, "chores") or
+                    feature_enabled?(@current_scope, "maintenance")
+                }
+                class="text-[10px] font-semibold tracking-widest text-base-content/40 uppercase px-3 pt-4 pb-1 mt-1"
+              >
+                Home Life
+              </p>
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "grocery")}
+                href={~p"/grocery"}
+                icon="hero-shopping-cart"
+                label="Grocery Lists"
+                active={@active_nav == :grocery}
+              />
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "recipes")}
+                href={~p"/recipes"}
+                icon="hero-book-open"
+                label="Recipes"
+                active={@active_nav == :recipes}
+              />
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "inventory")}
+                href={~p"/inventory"}
+                icon="hero-archive-box"
+                label="Inventory"
+                active={@active_nav == :inventory}
+              />
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "chores")}
+                href={~p"/chores"}
+                icon="hero-check-circle"
+                label="Chores"
+                active={@active_nav == :chores}
+              />
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "maintenance")}
+                href={~p"/maintenance"}
+                icon="hero-wrench-screwdriver"
+                label="Maintenance"
+                active={@active_nav == :maintenance}
+              />
+
+              <%!-- RECORDS section --%>
+              <p
+                :if={
+                  feature_enabled?(@current_scope, "contacts") or
+                    feature_enabled?(@current_scope, "documents")
+                }
+                class="text-[10px] font-semibold tracking-widest text-base-content/40 uppercase px-3 pt-4 pb-1 mt-1"
+              >
+                Records
+              </p>
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "contacts")}
+                href={~p"/contacts"}
+                icon="hero-user-group"
+                label="Contacts"
+                active={@active_nav == :contacts}
+              />
+              <.nav_link
+                :if={feature_enabled?(@current_scope, "documents")}
+                href={~p"/documents"}
+                icon="hero-folder"
+                label="Documents"
+                active={@active_nav == :documents}
+              />
 
               <%= if @current_scope.user.role == "admin" do %>
-                <div class="divider my-1"></div>
-                <ul class="menu gap-1">
-                  <li>
-                    <.nav_link href={~p"/admin/users"} icon="hero-users" label="Users" />
-                  </li>
-                  <li>
-                    <.nav_link href={~p"/admin/household"} icon="hero-cog-6-tooth" label="Settings" />
-                  </li>
-                </ul>
+                <p class="px-3 pt-4 pb-1 text-xs font-semibold tracking-widest text-base-content/40 uppercase">
+                  Admin
+                </p>
+                <.nav_link
+                  href={~p"/admin/users"}
+                  icon="hero-users"
+                  label="Users"
+                  active={@active_nav == :admin_users}
+                />
+                <.nav_link
+                  href={~p"/admin/household"}
+                  icon="hero-cog-6-tooth"
+                  label="Settings"
+                  active={@active_nav == :admin_household}
+                />
+                <.nav_link
+                  href={~p"/admin/features"}
+                  icon="hero-puzzle-piece"
+                  label="Features"
+                  active={@active_nav == :admin_features}
+                />
+                <.nav_link
+                  href={~p"/admin/categories"}
+                  icon="hero-tag"
+                  label="Categories"
+                  active={@active_nav == :admin_categories}
+                />
               <% end %>
             </nav>
 
             <%!-- User info at bottom --%>
             <div class="p-4 border-t border-base-300">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 mb-3">
                 <div class="avatar placeholder">
                   <div class="bg-primary text-primary-content w-8 rounded-full">
                     <span class="text-xs">
-                      {String.first(@current_scope.user.username || @current_scope.user.email) |> String.upcase()}
+                      {String.first(@current_scope.user.username || @current_scope.user.email)
+                      |> String.upcase()}
                     </span>
                   </div>
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium truncate">{@current_scope.user.username}</p>
-                  <p class="text-xs text-secondary truncate">{@current_scope.user.email}</p>
+                  <p class="text-xs text-base-content/50 truncate">{@current_scope.user.email}</p>
                 </div>
               </div>
-              <div class="mt-2 flex gap-2">
-                <.link href={~p"/users/settings"} class="btn btn-ghost btn-xs flex-1">
-                  Settings
+              <div class="flex gap-1">
+                <.link
+                  href={~p"/users/settings"}
+                  class="flex items-center gap-1.5 text-xs text-base-content/60 hover:text-base-content px-2 py-1.5 rounded-lg hover:bg-base-300 flex-1 transition-colors"
+                >
+                  <.icon name="hero-cog-6-tooth" class="size-3.5" /> Account
                 </.link>
-                <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost btn-xs flex-1">
-                  Log out
+                <.link
+                  href={~p"/users/log-out"}
+                  method="delete"
+                  class="flex items-center gap-1.5 text-xs text-base-content/60 hover:text-base-content px-2 py-1.5 rounded-lg hover:bg-base-300 flex-1 transition-colors"
+                >
+                  <.icon name="hero-arrow-right-on-rectangle" class="size-3.5" /> Log out
                 </.link>
               </div>
             </div>
@@ -121,7 +268,7 @@ defmodule HearthWeb.Layouts do
         </div>
       </div>
     <% else %>
-      <main class="min-h-screen">
+      <main class="min-h-screen bg-base-200 flex items-center justify-center px-4 py-12">
         {render_slot(@inner_block)}
       </main>
     <% end %>
@@ -130,10 +277,23 @@ defmodule HearthWeb.Layouts do
     """
   end
 
+  defp feature_enabled?(scope, feature) do
+    Hearth.Accounts.feature_enabled?(scope, feature)
+  end
+
   defp nav_link(assigns) do
     ~H"""
-    <a href={@href} class="flex items-center gap-3">
-      <.icon name={@icon} class="size-5" />
+    <a
+      href={@href}
+      class={[
+        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium border-l-2 transition-colors",
+        if(@active,
+          do: "bg-primary/10 text-primary border-primary",
+          else: "text-base-content hover:bg-base-300 border-transparent"
+        )
+      ]}
+    >
+      <.icon name={@icon} class="size-5 shrink-0" />
       <span>{@label}</span>
     </a>
     """

@@ -11,6 +11,7 @@ defmodule HearthWeb.Admin.HouseholdLive do
     {:ok,
      assign(socket,
        page_title: "Household Settings",
+       active_nav: :admin_household,
        household: household,
        form: to_form(changeset)
      )}

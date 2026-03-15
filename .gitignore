@@ -22,4 +22,7 @@ erl_crash.dump
 # Temporary files, for example, from tests.
 /tmp/
 
+# Claude Code development guide (internal, not for contributors)
+CLAUDE.md
+
 

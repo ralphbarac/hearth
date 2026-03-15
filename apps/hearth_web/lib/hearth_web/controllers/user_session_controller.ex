@@ -1,6 +1,8 @@
 defmodule HearthWeb.UserSessionController do
   use HearthWeb, :controller
 
+  require Logger
+
   alias Hearth.Accounts
   alias HearthWeb.UserAuth
 
@@ -35,10 +37,14 @@ defmodule HearthWeb.UserSessionController do
   # email + password login
   def create(conn, %{"user" => %{"email" => email, "password" => password} = user_params}) do
     if user = Accounts.get_user_by_email_and_password(email, password) do
+      Logger.info("user.login", user_id: user.id, method: "password")
+
       conn
       |> put_flash(:info, "Welcome back!")
       |> UserAuth.log_in_user(user, user_params)
     else
+      Logger.warning("user.login_failed", email: email)
+
       form = Phoenix.Component.to_form(user_params, as: "user")
 
       # In order to prevent user enumeration attacks, don't disclose whether the email is registered.
@@ -81,6 +87,9 @@ defmodule HearthWeb.UserSessionController do
   end
 
   def delete(conn, _params) do
+    user_id = get_in(conn.assigns, [:current_scope, Access.key(:user), Access.key(:id)])
+    Logger.info("user.logout", user_id: user_id)
+
     conn
     |> put_flash(:info, "Logged out successfully.")
     |> UserAuth.log_out_user()

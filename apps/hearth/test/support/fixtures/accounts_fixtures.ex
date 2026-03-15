@@ -25,7 +25,10 @@ defmodule Hearth.AccountsFixtures do
   def household_fixture(attrs \\ %{}) do
     {:ok, household} =
       attrs
-      |> Enum.into(%{name: "Test Household #{System.unique_integer([:positive])}"})
+      |> Enum.into(%{
+        name: "Test Household #{System.unique_integer([:positive])}",
+        features: %{"calendar" => true, "budget" => true, "grocery" => true}
+      })
       |> Households.create_household()
 
     household

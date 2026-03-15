@@ -24,12 +24,71 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/hearth_web"
 import topbar from "../vendor/topbar"
+import Chart from "../vendor/chart.js"
+
+const BudgetChart = {
+  mounted() { this._renderChart() },
+  updated() { this._renderChart() },
+  destroyed() { this._chart?.destroy() },
+  _renderChart() {
+    const type = this.el.dataset.chartType
+    const data = JSON.parse(this.el.dataset.chartData)
+
+    if (this._chart) {
+      this._chart.destroy()
+      this._chart = null
+    }
+
+    if (type === "category") {
+      this._chart = new Chart(this.el, {
+        type: "bar",
+        data: {
+          labels: data.map(d => d.name),
+          datasets: [{
+            label: "Expenses",
+            data: data.map(d => d.total / 100),
+            backgroundColor: "#f59e0b",
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { x: { ticks: { callback: v => "$" + v.toFixed(2) } } }
+        }
+      })
+    } else if (type === "monthly") {
+      this._chart = new Chart(this.el, {
+        type: "bar",
+        data: {
+          labels: data.map(d => d.label),
+          datasets: [
+            {
+              label: "Income",
+              data: data.map(d => d.income / 100),
+              backgroundColor: "#10b981",
+            },
+            {
+              label: "Expenses",
+              data: data.map(d => d.expenses / 100),
+              backgroundColor: "#f59e0b",
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { ticks: { callback: v => "$" + v.toFixed(0) } } }
+        }
+      })
+    }
+  }
+}
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, BudgetChart},
 })
 
 // Show progress bar on live navigation and form submits
